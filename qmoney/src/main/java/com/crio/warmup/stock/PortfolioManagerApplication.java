@@ -16,6 +16,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -119,7 +120,7 @@ public class PortfolioManagerApplication {
  }
 
  public static Double getClosingPriceOnEndDate(List<Candle> candles) {
-  return candles.get(candles.size() - 1).getClose();
+  return candles.get(candles.size()-1).getClose();
 }
 
 
@@ -208,6 +209,87 @@ public static List<Candle> fetchCandles(PortfolioTrade trade, LocalDate endDate,
 
   }
 
+
+
+  // TODO: CRIO_TASK_MODULE_CALCULATIONS
+  //  Now that you have the list of PortfolioTrade and their data, calculate annualized returns
+  //  for the stocks provided in the Json.
+  //  Use the function you just wrote #calculateAnnualizedReturns.
+  //  Return the list of AnnualizedReturns sorted by annualizedReturns in descending order.
+
+  // Note:
+  // 1. You may need to copy relevant code from #mainReadQuotes to parse the Json.
+  // 2. Remember to get the latest quotes from Tiingo API.
+
+
+
+
+  // TODO:
+  //  Ensure all tests are passing using below command
+  //  ./gradlew test --tests ModuleThreeRefactorTest
+  static Double getOpeningPriceOnStartDate(List<Candle> candles) {
+    return candles.get(0).getOpen(); 
+  }
+
+
+  // public static Double getClosingPriceOnEndDate(List<Candle> candles) {
+  //    return 0.0;
+  // }
+
+
+  // public static List<Candle> fetchCandles(PortfolioTrade trade, LocalDate endDate, String token) {
+  //    return Collections.emptyList();
+  // }
+
+  public static List<AnnualizedReturn> mainCalculateSingleReturn(String[] args)
+      throws IOException, URISyntaxException {
+      List<PortfolioTrade> portTrade=readTradesFromJson(args[0]);
+      List<AnnualizedReturn> newList = new ArrayList<>();
+      LocalDate date= LocalDate.parse(args[1]);
+  
+      for (PortfolioTrade temp: portTrade){
+        List<Candle> candleList =fetchCandles(temp, date, getToken());
+        AnnualizedReturn objNew=calculateAnnualizedReturns(date, temp, getOpeningPriceOnStartDate(candleList), getClosingPriceOnEndDate(candleList));
+        newList.add(objNew);
+      }
+  
+      Collections.sort(newList, new Comparator<AnnualizedReturn>() {
+  
+      @Override
+      public int compare(AnnualizedReturn arg0, AnnualizedReturn arg1) {
+        return (int) arg0.getAnnualizedReturn().compareTo(arg1.getAnnualizedReturn());
+      }
+          
+      });
+  
+      Collections.reverse(newList);
+  
+      return newList;
+  }
+
+  // TODO: CRIO_TASK_MODULE_CALCULATIONS
+  //  Return the populated list of AnnualizedReturn for all stocks.
+  //  Annualized returns should be calculated in two steps:
+  //   1. Calculate totalReturn = (sell_value - buy_value) / buy_value.
+  //      1.1 Store the same as totalReturns
+  //   2. Calculate extrapolated annualized returns by scaling the same in years span.
+  //      The formula is:
+  //      annualized_returns = (1 + total_returns) ^ (1 / total_num_years) - 1
+  //      2.1 Store the same as annualized_returns
+  //  Test the same using below specified command. The build should be successful.
+  //     ./gradlew test --tests PortfolioManagerApplicationTest.testCalculateAnnualizedReturn
+
+  public static AnnualizedReturn calculateAnnualizedReturns(LocalDate endDate,
+      PortfolioTrade trade, Double buyPrice, Double sellPrice) { 
+      double totalReturn= (sellPrice-buyPrice)/buyPrice;
+      double numOfYears= ChronoUnit.DAYS.between(trade.getPurchaseDate(), endDate) / 365.2422;
+      double oneByNumOfYrs= 1.0/ numOfYears;
+      double annualized_return = Math.pow((1.0+ totalReturn), oneByNumOfYrs) -1 ;
+    
+      return new AnnualizedReturn(trade.getSymbol(),annualized_return, totalReturn);
+  }
+
+
   public static void main(String[] args) throws Exception {
     Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler());
     ThreadContext.put("runId", UUID.randomUUID().toString());
@@ -215,6 +297,8 @@ public static List<Candle> fetchCandles(PortfolioTrade trade, LocalDate endDate,
 
     printJsonObject(mainReadQuotes(args));
 
+
+    printJsonObject(mainCalculateSingleReturn(args));
 
   }
 }
