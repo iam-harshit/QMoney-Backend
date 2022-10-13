@@ -146,61 +146,31 @@ public static List<Candle> fetchCandles(PortfolioTrade trade, LocalDate endDate,
 
   public static List<String> mainReadQuotes(String[] args) throws IOException, URISyntaxException {
 
-    // List<PortfolioTrade> res = readTradesFromJson(args[0]);
-    // RestTemplate restTemplate = new RestTemplate();
-    // List<TotalReturnsDto> make = new ArrayList<>();
-    // List<String> fin = new ArrayList<>();
-    // for (PortfolioTrade p : res) {
-    //   String url = prepareUrl(p, LocalDate.parse(args[1]), getToken());
-    //   TiingoCandle[] obj = restTemplate.getForObject(url, TiingoCandle[].class);
-    //   make.add(new TotalReturnsDto(p.getSymbol(), obj[obj.length - 1].getClose()));
-    // }
-    // Collections.sort(make, new Comparator<TotalReturnsDto>() {
-    // @Override
-    // public int compare(TotalReturnsDto obj1, TotalReturnsDto obj2) {
-    //   return (int)(obj1.getClosingPrice()-obj2.getClosingPrice());
-    // }
-    // });
-    // for (TotalReturnsDto td : make) {
-    //   fin.add(td.getSymbol());
-    // }
-    // return fin;
-    //File input = resolveFileFromResources(args[0]);
-    // LocalDate endDate;
-    // try {
-    // endDate=LocalDate.parse(args[1]);
-    // } catch (DateTimeParseException e) {
-    // throw new RuntimeException();
-    // }
-    //ObjectMapper objMapper = getObjectMapper();
-    //PortfolioTrade[] pma = objMapper.readValue(input, PortfolioTrade[].class);
-    // if(pma.length==0) return Collections.emptyList();
     List<PortfolioTrade> pma = readTradesFromJson(args[0]);
     List<TotalReturnsDto> list = new ArrayList<>();
+
     for (int i = 0; i < pma.size(); i++) {
-      // if (pma[i] == null || pma[i].getPurchaseDate().compareTo(endDate) > 0)
-      // throw new RuntimeException();
-      //String url = prepareUrl(pma.get(i), LocalDate.parse(args[1]), getToken());
-      // RestTemplate restTemplate = new RestTemplate();
-      // TiingoCandle[] tiingoCandle = restTemplate.getForObject(url, TiingoCandle[].class);
-      // // if (tiingoCandle.length == 0)
-      //   return Collections.emptyList();
-      // Double closingPrice = tiingoCandle[tiingoCandle.length - 1].getClose();
       List<Candle> candles = fetchCandles(pma.get(i), LocalDate.parse(args[1]), getToken());
       Double closingPrice=getClosingPriceOnEndDate(candles);
       list.add(new TotalReturnsDto(pma.get(i).getSymbol(), closingPrice));
     }
+
     Collections.sort(list, new Comparator<TotalReturnsDto>() {
+
       @Override
       public int compare(TotalReturnsDto p1, TotalReturnsDto p2) {
         return p1.getClosingPrice() > p2.getClosingPrice() ? 1 : -1;
       }
+
     });
+
     List<String> ans = new ArrayList<>();
     for (TotalReturnsDto t : list) {
       ans.add(t.getSymbol());
     }
+
     return ans;
+
   }
   
   static String getToken() {
@@ -212,30 +182,31 @@ public static List<Candle> fetchCandles(PortfolioTrade trade, LocalDate endDate,
   //  ./gradlew test --tests PortfolioManagerApplicationTest.readTradesFromJson
   //  ./gradlew test --tests PortfolioManagerApplicationTest.mainReadFile
   public static List<PortfolioTrade> readTradesFromJson(String filename) throws IOException, URISyntaxException {
-      // ObjectMapper om = getObjectMapper();
-      // PortfolioTrade[] pf = om.readValue(resolveFileFromResources(filename), PortfolioTrade[].class);
-      // List<PortfolioTrade> ls = Arrays.asList(pf);
-      // return ls;
-      ObjectMapper objectMapper = getObjectMapper();
-      PortfolioTrade[] trades =
-          objectMapper.readValue(readFileAsString(filename), PortfolioTrade[].class);
-      return Arrays.asList(trades);
+  
+    ObjectMapper objectMapper = getObjectMapper();
+    PortfolioTrade[] trades = objectMapper.readValue(readFileAsString(filename), PortfolioTrade[].class);
+    return Arrays.asList(trades);
+
   }
 
   private static String readFileAsString(String filename) throws URISyntaxException, IOException {
+
     return new String(Files.readAllBytes(resolveFileFromResources(filename).toPath()), "UTF-8");
+
   }
 
   // TODO:
   //  Build the Url using given parameters and use this function in your code to cann the API.
   public static String prepareUrl(PortfolioTrade trade, LocalDate endDate, String token) {
+
     String url = "https://api.tiingo.com/tiingo/daily/" + trade.getSymbol()
     + "/prices?startDate="
     + trade.getPurchaseDate() + "&endDate=" + endDate.toString()
     + "&token="+token;
-return url;
-  }
 
+  return url;
+
+  }
 
   public static void main(String[] args) throws Exception {
     Thread.setDefaultUncaughtExceptionHandler(new UncaughtExceptionHandler());
