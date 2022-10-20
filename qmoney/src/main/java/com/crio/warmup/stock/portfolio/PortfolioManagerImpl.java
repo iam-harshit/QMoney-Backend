@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -124,6 +125,7 @@ public class PortfolioManagerImpl implements PortfolioManager {
     return new AnnualizedReturn(trade.getSymbol(), annualized_returns, totalReturns);
   }
 
+
   @Override
   public List<AnnualizedReturn> calculateAnnualizedReturn(List<PortfolioTrade> portfolioTrades, LocalDate endDate) throws StockQuoteServiceException 
   {
@@ -135,7 +137,7 @@ public class PortfolioManagerImpl implements PortfolioManager {
         candles = getStockQuote(portfolioTrade.getSymbol(), portfolioTrade.getPurchaseDate(), endDate);
         AnnualizedReturn annualizedReturn = calculateAnnualizedReturns(endDate, portfolioTrade,
         getOpeningPriceOnStartDate(candles), getClosingPriceOnEndDate(candles));
-   annualizedReturns.add(annualizedReturn);
+        annualizedReturns.add(annualizedReturn);
       } catch (JsonProcessingException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
@@ -145,5 +147,75 @@ public class PortfolioManagerImpl implements PortfolioManager {
     }
     return annualizedReturns.stream().sorted(getComparator()).collect(Collectors.toList());
   }
+
+  @Override
+  public List<AnnualizedReturn> calculateAnnualizedReturnParallel(
+      List<PortfolioTrade> portfolioTrades, LocalDate endDate, int numThreads)
+      throws StockQuoteServiceException {
+
+        ExecutorService executer=Executors.newFixedThreadPool(numThreads);
+
+      List<Future<AnnualizedReturn>> futureannualizedreturn=null;
+      List<AnnualizedReturn> anualreturn=new ArrayList<>();
+      List<ThreadHandler> handler=new ArrayList<>();
+
+      for(PortfolioTrade portfoliotrade: portfolioTrades){
+        handler.add(new ThreadHandler(endDate,portfoliotrade));
+      }
+          
+        try {
+          futureannualizedreturn= executer.invokeAll(handler);
+
+          for(Future<AnnualizedReturn> fuanuiter : futureannualizedreturn){
+            anualreturn.add(fuanuiter.get());
+          }
+
+
+
+        } catch (InterruptedException e) {
+            
+          throw new StockQuoteServiceException(e.getMessage());
+         
+        } catch (ExecutionException e) {
+            
+          throw new StockQuoteServiceException(e.getMessage());
+         
+        }
+ 
+        executer.shutdown();
+
+      return anualreturn.stream().sorted(Comparator.comparing(AnnualizedReturn::getAnnualizedReturn).reversed()).collect(Collectors.toList());
+   
+  
+  }
+
+  class ThreadHandler implements Callable<AnnualizedReturn>{
+
+    PortfolioTrade porttradeobj;
+    LocalDate date;
+    
+    public ThreadHandler(LocalDate date,PortfolioTrade porttradeobj) {
+      this.date = date;
+      this.porttradeobj = porttradeobj;
+    }
+
+
+    public ThreadHandler() {
+      
+    }
+
+
+    @Override
+    public AnnualizedReturn call() throws Exception {
+
+      List<Candle> candleresult=stockQuotesService.getStockQuote(porttradeobj.getSymbol(), porttradeobj.getPurchaseDate(), date);
+
+      return calculateAnnualizedReturns(date, porttradeobj, candleresult.get(0).getOpen(), candleresult.get(candleresult.size()-1).getClose());
+      
+    }
+
+  }
+
+  
 }
 
