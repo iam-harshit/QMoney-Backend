@@ -19,7 +19,7 @@ public class TiingoService implements StockQuotesService {
   RestTemplate restTemplate=new RestTemplate();
 
   public String getToken(){
-    return "f8f43e95887cfbd3079e95cc1df68412e608e7ae";
+    return "bfab33eb91575e1b83114f8f2a19290f068cf05a";
   }
 
   protected TiingoService(RestTemplate restTemplate) {

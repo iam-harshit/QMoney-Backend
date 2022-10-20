@@ -39,55 +39,45 @@ public class AlphavantageService implements StockQuotesService {
         }
       
         @Override
-        public List<Candle> getStockQuote(String symbol, LocalDate from, LocalDate to)
+        public List<Candle> getStockQuote(String symbol, LocalDate from, LocalDate to) throws StockQuoteServiceException
            {
       
                   
-          String responseString = restTemplate.getForObject(createUrl(symbol), String.class);
-      
-          AlphavantageDailyResponse alphavantageDailyResponse=null;
-          try {
-            ObjectMapper objectMapper=new ObjectMapper();
-            objectMapper.registerModule(new JavaTimeModule());
-      
-            alphavantageDailyResponse =
-                objectMapper.readValue(responseString, AlphavantageDailyResponse.class);
-            if (alphavantageDailyResponse.getCandles() == null || responseString == null)
-              try {
-                throw new StockQuoteServiceException("Invalid Response Found");
-              } catch (StockQuoteServiceException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-              }
-          } catch (JsonProcessingException e) {
+            String responseString = restTemplate.getForObject(createUrl(symbol), String.class);
+
+            AlphavantageDailyResponse alphavantageDailyResponse;
             try {
+              ObjectMapper objectMapper=new ObjectMapper();
+              objectMapper.registerModule(new JavaTimeModule());
+        
+              alphavantageDailyResponse =
+                  objectMapper.readValue(responseString, AlphavantageDailyResponse.class);
+              if (alphavantageDailyResponse.getCandles() == null || responseString == null)
+                throw new StockQuoteServiceException("Invalid Response Found");
+            } catch (JsonProcessingException e) {
               throw new StockQuoteServiceException(e.getMessage());
-            } catch (StockQuoteServiceException e1) {
-              // TODO Auto-generated catch block
-              e1.printStackTrace();
             }
-          }
-          List<Candle> alphavantageCandles = new ArrayList<>();
-          Map<LocalDate, AlphavantageCandle> mapOFDateAndAlphavantageCandle =
-              alphavantageDailyResponse.getCandles();
-          for (LocalDate localDate : mapOFDateAndAlphavantageCandle.keySet()) {
-            if (localDate.isAfter(from.minusDays(1)) && localDate.isBefore(to.plusDays(1))) {
-              AlphavantageCandle alphavantageCandle =
-                  alphavantageDailyResponse.getCandles().get(localDate);
-              alphavantageCandle.setDate(localDate);
-              alphavantageCandles.add(alphavantageCandle);
+            List<Candle> alphavantageCandles = new ArrayList<>();
+            Map<LocalDate, AlphavantageCandle> mapOFDateAndAlphavantageCandle =
+                alphavantageDailyResponse.getCandles();
+            for (LocalDate localDate : mapOFDateAndAlphavantageCandle.keySet()) {
+              if (localDate.isAfter(from.minusDays(1)) && localDate.isBefore(to.plusDays(1))) {
+                AlphavantageCandle alphavantageCandle =
+                    alphavantageDailyResponse.getCandles().get(localDate);
+                alphavantageCandle.setDate(localDate);
+                alphavantageCandles.add(alphavantageCandle);
+              }
+              // AlphavantageCandle alphacandle=alphadailyres.getCandles();
             }
-          }
-          return alphavantageCandles.stream().sorted(Comparator.comparing(Candle::getDate))
-              .collect(Collectors.toList());
+            return alphavantageCandles.stream().sorted(Comparator.comparing(Candle::getDate))
+                .collect(Collectors.toList());
+        
+            //return candlelist.stream().sorted(Comparator.comparing(Candle::getDate)).collect(Collectors.toList());
       
         }
         
 
 
 }
-
-
-
 
 
